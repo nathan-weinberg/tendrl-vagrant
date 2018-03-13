@@ -1,0 +1,19 @@
+- name: Deploy gluster cluster
+  hosts: RHGS{{ vm_count }}
+  become: true
+  tasks:
+    - name: Install gdeploy
+      yum:
+        name: gdeploy
+        state: present
+
+    - name: Generate gdeploy.conf
+      template:
+        src: gdeploy-{{ provider }}.conf.j2
+        dest: "/tmp/gdeploy.conf"
+
+    - name: Run GDeploy
+      shell: 'gdeploy -c /tmp/gdeploy.conf'
+
+
+

@@ -5,20 +5,30 @@
   become: true
 
   tasks:
-    - name: generate gdeploy.conf for virtualbox
-      template:
-        src: gdeploy-virtualbox.conf.j2
-        dest: /home/vagrant/gdeploy.conf
-        owner: vagrant
-        group: vagrant
-      when: provider == "virtualbox"
+    - name: add EPEL
+      yum:
+        name: epel-release
+        state: present
 
-    - name: generate gdeploy.conf for libvirt
-      template:
-        src: gdeploy-libvirt.conf.j2
-        dest: /home/vagrant/gdeploy.conf
-        owner: vagrant
-        group: vagrant
-      when: provider == "libvirt"
+    - name: add copr
+      yum:
+        name: yum-plugin-copr
+        state: present
+
+    - name: add gluster repo
+      yum:
+        name: centos-release-gluster
+        state: present
+
+    - name: Install GlusterFS Server
+      yum:
+        name: glusterfs-server
+        state: present
+
+    - name: Enable GlusterFS Service
+      systemd:
+        name: glusterd
+        enabled: yes
+        state: started
 
 ...

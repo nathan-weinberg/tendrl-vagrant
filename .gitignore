@@ -10,3 +10,5 @@ packer_vars
 vagrant_env.conf
 *.retry
 ansible/fetch
+*.swp
+ansible/tmp

@@ -1,0 +1,27 @@
+---
+
+- hosts: rhgs-nodes
+
+  become: true
+
+  tasks:
+
+    - setup:
+
+- hosts: RHGS1
+
+  become: true
+
+  tasks:
+
+    - name: create playbook for tendrl installation
+      template:
+        src: tendrl-site.yml.j2
+        dest: "./tendrl-site.yml"
+
+    - name: Fetch tendrl playbook
+      fetch:
+        src: 'tendrl-site.yml'
+        dest: 'tmp'
+
+...
