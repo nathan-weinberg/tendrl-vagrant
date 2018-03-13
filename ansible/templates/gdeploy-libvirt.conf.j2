@@ -1,5 +1,5 @@
 [hosts]
-{% for host in groups["rhgs-nodes"]|sort %}
+{% for host in groups["gluster-servers"]|sort %}
 {{ hostvars[host]["ansible_hostname"] }}
 {% endfor %}
 

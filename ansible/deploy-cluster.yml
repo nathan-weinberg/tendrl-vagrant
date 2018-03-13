@@ -1,5 +1,5 @@
 - name: Deploy gluster cluster
-  hosts: RHGS{{ vm_count }}
+  hosts: tendrl-node-{{ storage_node_count }}
   become: true
   tasks:
     - name: Install gdeploy

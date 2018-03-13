@@ -1,0 +1,4 @@
+storage_node_count: 2
+disk_count: 2
+cluster_init: true
+tendrl_init: true

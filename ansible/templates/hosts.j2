@@ -5,4 +5,4 @@
 {% set second_nic = hostvars[host].ansible_interfaces | difference(["lo",hostvars[host].ansible_default_ipv4.alias]) | first %}
 {{ hostvars[host]["ansible_" + second_nic]["ipv4"]["address"] }} {{ hostvars[host]["ansible_hostname"] }} {{ hostvars[host]["ansible_hostname"] }}.local
 {% endfor %}
-192.168.121.1 TENDRL.host
+192.168.121.1 ETCD.host GRAPHITE.host

@@ -1,6 +1,6 @@
 ---
 
-- hosts: rhgs-nodes
+- hosts: gluster-servers
 
   become: true
 
@@ -8,7 +8,7 @@
 
     - setup:
 
-- hosts: RHGS1
+- hosts: tendrl-node-1
 
   become: true
 

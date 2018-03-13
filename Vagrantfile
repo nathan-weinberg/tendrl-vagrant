@@ -1,28 +1,29 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-require 'pry'
+require 'yaml'
+
 # Some variables we need below
 VAGRANT_ROOT = File.dirname(File.expand_path(__FILE__))
 
-#Disable parallel runs - breaks peer probe in the end
+# Disable parallel runs - breaks peer probe in the end
 ENV['VAGRANT_NO_PARALLEL'] = 'yes'
 
 #################
 # Poor man's OS detection routine
 #################
 module OS
-    def OS.windows?
-        (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
-    end
+  def self.windows?
+    (/cygwin|mswin|mingw|bccwin|wince|emx/ =~ RUBY_PLATFORM) != nil
+  end
 
-    def OS.mac?
-        (/darwin/ =~ RUBY_PLATFORM) != nil
-    end
+  def self.mac?
+    (/darwin/ =~ RUBY_PLATFORM) != nil
+  end
 
-    def OS.linux?
-        not OS.windows? and not OS.mac?
-    end
+  def self.linux?
+    !OS.windows? && !OS.mac?
+  end
 end
 
 #################
@@ -37,145 +38,74 @@ elsif OS.linux?
 end
 
 #################
-# Set RHGS version
-RHGS_VERSION = "rhgs-node-3.3.1-rhel-7"
-
-# Currently available versions:
-# rhgs-node-3.3.1-rhel-7
-#################
-
-# Set TENDRL version
-TENDRL_VERSION = "tendrl-server-3.3.1-rhel-7"
-
-# Currently available versions:
-# tendrl-server-3.3.1-rhel-7
-#################
-
-
-#################
 # General VM settings applied to all VMs
 #################
 VMCPU = 1         # number of cores per VM
 VMMEM = 1024      # amount of memory in MB per VM
-VMDISK = '128m'       # size of brick disks in GB per VM
+VMDISK = '128m'.freeze # size of brick disks in GB per VM
 
 #################
 
-numberOfVMs = 0
-numberOfDisks = -1
-clusterInit = -1
-tendrlInit = -1
+storage_node_count = -1
+disk_count = -1
+cluster_init = -1
+tendrl_init = -1
 
-if ARGV[0] == "up"
+tendrl_conf = YAML.load_file 'tendrl.conf.yml'
+storage_node_count = tendrl_conf['storage_node_count'].to_i
+disk_count = tendrl_conf['disk_count'].to_i
+cluster_init = tendrl_conf['cluster_init']
+tendrl_init = tendrl_conf['tendrl_init']
 
-  print "\n\e[1;37mHow many RHGS nodes do you want me to provision for you? [2] \e[32m"
-  while numberOfVMs < 2
-    numberOfVMs = $stdin.gets.strip.to_i
-    if numberOfVMs == 0 # The user pressed enter without input or we cannot parse the input to a number
-      numberOfVMs = 2
-    elsif numberOfVMs < 2
-      print "\e[31mWe need at least 2 VMs ;) Try again \e[32m"
-    end
-  end
+if storage_node_count < 2
+  puts 'Minimum 2 nodes needed'
+  exit 1
+end
 
-  print "\e[1;37mHow many disks do you need per VM for bricks? [2] \e[32m"
+if disk_count < 1
+  puts 'Minimum 1 disk needed'
+  exit 1
+end
 
-  while numberOfDisks < 1
-    numberOfDisks = $stdin.gets.strip.to_i
-    if numberOfDisks == 0 # The user pressed enter without input or we cannot parse the input to a number
-      numberOfDisks = 2
-    elsif numberOfDisks < 1
-      print "\e[31mWe need at least 1 disk ;) Try again \e[32m"
-    end
-  end
-
-  print "\e[1;37mDo you want me to initialize the cluster for you? [no] \e[32m"
-
-  while clusterInit == -1
-    clusterInitResponse = $stdin.gets.strip.to_s.downcase
-
-    if clusterInitResponse == 'yes' or clusterInitResponse == 'y'
-      clusterInit = 1
-
-      print "\e[1;37mDo you want me to deploy the web admin (tendrl) node for you? [no] \e[32m"
-
-      while tendrlInit == -1
-        tendrlInitResponse = $stdin.gets.strip.to_s.downcase
-
-        if tendrlInitResponse == 'yes' or tendrlInitResponse == 'y'
-          tendrlInit = 1
-        elsif tendrlInitResponse == 'no' or tendrlInitResponse == 'n' or tendrlInitResponse == ''
-          tendrlInit = 0
-        else
-          print "\e[31mPlease enter 'yes' or 'no'\e[32m"
-        end
-      end
-    elsif clusterInitResponse == 'no' or clusterInitResponse == 'n' or clusterInitResponse == ''
-      clusterInit = 0
-    else
-      print "\e[31mPlease enter 'yes' or 'no'\e[32m"
-    end
-  end
-
-  environment = open('vagrant_env.conf', 'w')
-  environment.puts("# BEWARE: Do NOT modify ANY settings in here or your vagrant environment will be messed up")
-  environment.puts(numberOfVMs.to_s)
-  environment.puts(numberOfDisks.to_s)
-  environment.puts(clusterInit.to_s)
-  environment.puts(tendrlInit.to_s)
-  environment.close
-
-  print "\e[32m\nOK I will provision #{numberOfVMs} VMs for you and each one will have #{numberOfDisks} disks for bricks\e[37m\n"
-
-  if clusterInit == 1
-
-    if tendrlInit == 1
-      print "\e[32m\nAlso, I will initialize the cluster for you and deploy the web admin console (tendrl)\e[37m\n\n"
-    else
-      print "\e[32m\nAlso, I will initialize the cluster for you using gdeploy.\e[37m\n\n"
-    end
-  else
-    print "\e[32m\nAlso, I will not initialize the cluster but leave a gdeploy.conf for your convenience\e[37m\n\n"
-  end
-
-  system "sleep 1"
-else # So that we destroy and can connect to all VMs...
-  begin
-    environment = open('vagrant_env.conf', 'r')
-    environment.readline # Skip the comment on top
-    numberOfVMs = environment.readline.to_i
-    numberOfDisks = environment.readline.to_i
-    clusterInit = environment.readline.to_i
-    tendrlInit = environment.readline.to_i
-    environment.close
-  rescue # File was deleted or is unreadable and we just don't care...
-    numberOfVMs = 2
-    numberOfDisks = 2
-    print "\e[31m\nWARNING! Couldn't find file vagrant_env.conf! I will assume you have provisioned #{numberOfVMs} VMs\e[37m\n\n"
-  end
-
-
-
-  if ARGV[0] != "ssh-config" && ARGV[0] != "ssh"
-    puts "Detected settings from previous vagrant up:"
-    puts "  We deployed #{numberOfVMs} VMs with each #{numberOfDisks} disks"
-    puts ""
+%w[cluster_init tendrl_init].each do |bool_att|
+  unless [true, false].include? tendrl_conf[bool_att]
+    puts bool_att + ' value unrecognised. Use true/false.'
+    exit 1
   end
 end
 
-def vBoxAttachDisks(numDisk, provider, boxName)
-  for i in 1..numDisk.to_i
-    file_to_disk = File.join(VAGRANT_ROOT, 'disks', ( boxName + '-' +'disk' + i.to_s + '.vdi' ))
+if ARGV[0] != 'ssh-config' && ARGV[0] != 'ssh'
+  puts 'Detected settings from tendrl.conf.yml:'
+  puts "  We have configured #{storage_node_count} VMs with each #{disk_count} disks"
+  puts "  Cluster deployment playbook is #{cluster_init ? 'enabled' : 'disabled'}"
+  puts "  Tendrl storage node playbook is #{tendrl_init ? 'enabled' : 'disabled'}"
+end
+
+def vb_attach_disks(disks, provider, boxName)
+  (1..disks).each do |i|
+    file_to_disk = File.join VAGRANT_ROOT, 'disks', "#{boxName}-disk#{i}.vdi"
     unless File.exist?(file_to_disk)
-      provider.customize ['createhd', '--filename', file_to_disk, '--size', VMDISK * 1024]
+      provider.customize [
+        'createhd',
+        '--filename', file_to_disk,
+        '--size', VMDISK * 1024
+      ]
     end
-    provider.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', i, '--device', 0, '--type', 'hdd', '--medium', file_to_disk]
+    provider.customize [
+      'storageattach',
+      :id,
+      '--storagectl', 'SATA Controller',
+      '--port', i,
+      '--device', 0,
+      '--type', 'hdd',
+      '--medium', file_to_disk
+    ]
   end
 end
 
-def libvirtAttachDisks(numDisk, provider)
-  for i in 1..numDisk.to_i
-    provider.storage :file, :bus => 'virtio', :size => VMDISK
+def libvirt_attach_disks(disks, provider)
+  (1..disks).each do
+    provider.storage :file, bus: 'virtio', size: VMDISK
   end
 end
 
@@ -183,27 +113,26 @@ end
 Vagrant.configure(2) do |config|
   config.vm.box = 'centos/7'
 
-  config.vm.provider "virtualbox" do |vb, override|
+  config.vm.provider 'virtualbox' do |vb, _override|
     vb.gui = false
   end
 
-  config.vm.provider "libvirt" do |libvirt, override|
+  config.vm.provider 'libvirt' do |libvirt, _override|
     libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
   end
 
-  (1..numberOfVMs).each do |vmNum|
-    config.vm.define "RHGS#{vmNum.to_s}" do |machine|
-
+  (1..storage_node_count).each do |node_index|
+    config.vm.define "tendrl-node-#{node_index}" do |machine|
       # Provider-independent options
-      machine.vm.hostname = "RHGS#{vmNum.to_s}"
-      machine.vm.synced_folder ".", "/vagrant", disabled: true
+      machine.vm.hostname = "tendrl-node-#{node_index}"
+      machine.vm.synced_folder '.', '/vagrant', disabled: true
 
-      #machine.vm.network "private_network", type: 'dhcp'
-      #machine.vm.management_network_address = '
-      machine.vm.provider "virtualbox" do |vb, override|
-
+      machine.vm.provider 'virtualbox' do |vb, override|
         # private VM-only network where GlusterFS traffic will flow
-        override.vm.network "private_network", type: "dhcp", nic_type: "virtio", auto_config: false
+        override.vm.network 'private_network',
+          type: 'dhcp',
+          nic_type: 'virtio',
+          auto_config: false
 
         # Make this a linked clone for cow snapshot based root disks
         vb.linked_clone = true
@@ -216,78 +145,72 @@ Vagrant.configure(2) do |config|
         vb.gui = false
 
         # give this VM a proper name
-        vb.name = "RHGS#{vmNum.to_s}"
+        vb.name = "tendrl-node-#{node_index}"
 
         # attach brick disks
-        vBoxAttachDisks( numberOfDisks, vb, "RHGS#{vmNum.to_s}" )
+        vb_attach_disks(disk_count, vb, "tendrl-node-#{node_index}")
 
         # Accelerate SSH / Ansible connections (https://github.com/mitchellh/vagrant/issues/1807)
-        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        vb.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
+        vb.customize ['modifyvm', :id, '--natdnsproxy1', 'on']
       end
 
-      machine.vm.provider "libvirt" do |libvirt, override|
-
+      machine.vm.provider 'libvirt' do |libvirt, override|
         # private VM-only network where GlusterFS traffic will flow
-        override.vm.network "private_network", type: "dhcp", auto_config: false
+        override.vm.network 'private_network', type: 'dhcp', auto_config: false
 
         # Set VM resources
         libvirt.memory = VMMEM
         libvirt.cpus = VMCPU
 
         # Use virtio device drivers
-        libvirt.nic_model_type = "virtio"
-        libvirt.disk_bus = "virtio"
+        libvirt.nic_model_type = 'virtio'
+        libvirt.disk_bus = 'virtio'
 
         # connect to local libvirt daemon as root
-        libvirt.username = "root"
+        libvirt.username = 'root'
 
         # attach brick disks
-        libvirtAttachDisks( numberOfDisks, libvirt )
+        libvirt_attach_disks(disk_count, libvirt)
       end
 
-      if vmNum == numberOfVMs
+      if node_index == storage_node_count
 
         machine.vm.provision :prepare_env, type: :ansible do |ansible|
-          ansible.limit = "all"
-          ansible.playbook = "ansible/prepare-environment.yml"
+          ansible.limit = 'all'
+          ansible.playbook = 'ansible/prepare-environment.yml'
         end
 
         machine.vm.provision :prepare_gluster, type: :ansible do |ansible|
-          ansible.limit = "all"
-          ansible.groups = { "rhgs-nodes" => ["RHGS[1:#{numberOfVMs}]"] }
-          ansible.extra_vars = { provider: "libvirt" }
-          ansible.playbook = "ansible/prepare-gluster.yml"
+          ansible.limit = 'all'
+          ansible.groups = {
+            'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"]
+          }
+          ansible.playbook = 'ansible/prepare-gluster.yml'
         end
 
-        # awkward reptition due to lack of provisioner priority in Vagrant
-        if clusterInit == 1
+        if cluster_init
           machine.vm.provision :deploy_cluster, type: :ansible do |ansible|
-            ansible.limit = "all"
+            ansible.limit = 'all'
             ansible.playbook = 'ansible/deploy-cluster.yml'
-            ansible.groups = { 'rhgs-nodes' => ["RHGS[1:#{numberOfVMs}"] }
-            ansible.extra_vars = { vm_count: numberOfVMs, provider: 'libvirt' } # '<your_provider_name>' }
+            ansible.groups = {
+              'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}"]
+            }
+            ansible.extra_vars = {
+              storage_node_count: storage_node_count,
+              provider: ENV['VAGRANT_DEFAULT_PROVIDER'] # '<your_provider_name>'
+            }
           end
         end
 
-        if tendrlInit == 1
-          machine.vm.provision :generate_tendrl_playbook, type: :ansible do |ansible|
-            ansible.limit = "all"
-            ansible.groups = {
-              "local" => ['localhost'],
-              "rhgs-nodes" => ["RHGS[1:#{numberOfVMs}]"],
-              "tendrl-server" => ["TENDRL.local"]
-            }
-            ansible.playbook = "ansible/generate-tendrl-playbook.yml"
-          end
-
+        if tendrl_init
           machine.vm.provision :deploy_tendrl, type: :ansible do |ansible|
-            ansible.limit = "all"
+            ansible.limit = 'all'
             ansible.groups = {
-              "gluster-servers" => ["RHGS[1:#{numberOfVMs}]"],
-              "tendrl-server" => []
+              'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"],
+              'tendrl-server' => []
             }
-            ansible.playbook = "ansible/tmp/RHGS1/tendrl-site.yml"
+            ansible.playbook = 'ansible/tendrl-site.yml'
           end
         end
       end
