@@ -4,10 +4,9 @@ disks
 ssh_conf
 output-qemu/
 .vagrant/
-vagrant_env.conf
 *.box
 packer_vars
-vagrant_env.conf
 *.retry
 ansible/fetch
 *.swp
+tendrl.conf.yml
