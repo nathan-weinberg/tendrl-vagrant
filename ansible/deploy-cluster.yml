@@ -1,3 +1,9 @@
+- name: Get cluster facts
+  hosts: gluster-servers
+  become: true
+  tasks:
+    - setup:
+
 - name: Deploy gluster cluster
   hosts: tendrl-node-{{ storage_node_count }}
   become: true
