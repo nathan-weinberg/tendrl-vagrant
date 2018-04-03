@@ -194,10 +194,9 @@ Vagrant.configure(2) do |config|
             ansible.limit = 'all'
             ansible.playbook = 'ansible/deploy-cluster.yml'
             ansible.groups = {
-              'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}"]
+              'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"]
             }
             ansible.extra_vars = {
-              storage_node_count: storage_node_count,
               provider: ENV['VAGRANT_DEFAULT_PROVIDER'] # '<your_provider_name>'
             }
           end

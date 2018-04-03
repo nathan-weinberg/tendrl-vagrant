@@ -1,13 +1,12 @@
-- name: Get cluster facts
+- name: Deploy gluster
+
   hosts: gluster-servers
+
   become: true
+
   tasks:
     - setup:
 
-- name: Deploy gluster cluster
-  hosts: tendrl-node-{{ storage_node_count }}
-  become: true
-  tasks:
     - name: Install gdeploy
       yum:
         name: gdeploy
@@ -20,6 +19,3 @@
 
     - name: Run GDeploy
       shell: 'gdeploy -c /tmp/gdeploy.conf'
-
-
-

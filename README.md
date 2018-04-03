@@ -1,8 +1,10 @@
-# RHGS 3.3.1 in Vagrant
+# Tendrl/api development with Vagrant
 
-A Vagrant setup for Red Hat Gluster Storage version 3.3 update 1.
-This will setup as many RHGS nodes as you want with a number of bricks that you can define!
-Optionally you can choose to deploy the management UI [tendrl](github.com/tendrl).
+A Vagrant setup for development of tendrl-api.
+
+This will setup as many gluster storage nodes as you want with a number of bricks that you can define!
+It works with your local tendrl-api server and tendrl-ui setup.
+It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host machine.
 
 ## Requirements
 * macOS with [Virtualbox](https://www.virtualbox.org/wiki/Downloads) (starting 5.1.30) **or**
@@ -77,9 +79,9 @@ Optionally you can choose to deploy the management UI [tendrl](github.com/tendrl
 ## Usage
 * *Always make sure you are in the git repo - vagrant only works in there!*
 * After `vagrant up` you can connect to each VM with `vagrant ssh` and the name of the VM you want to connect to
-* Each VM is called `RHGSx` where x starts with 1
-  * RHGS1 is your first VM and it counts up depending on the amount of VMs you spawn
-  * There is an additional VM called `TENDRL` which hosts the Gluster Web Admin Server if you selected to deploy it (URL is displayed at the end of `vagrant up`)
+* Each VM is called `tendrl-node-x` where x starts with 1
+  - tendrl-node-1 is your first VM and it counts up depending on the amount of VMs you spawn
+
 * There are also other vagrant commands you should check out!
   * if you want to throw away everything: `vagrant destroy -f`
   * if you want to freeze the VMs and continue later: `vagrant suspend`

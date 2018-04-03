@@ -1,0 +1,21 @@
+[submodule "node_agent"]
+	path = node_agent
+	url = https://github.com/Tendrl/node-agent
+[submodule "monitoring-integration"]
+	path = monitoring-integration
+	url = https://github.com/Tendrl/monitoring-integration
+[submodule "api"]
+	path = api
+	url = https://github.com/Tendrl/api
+[submodule "ui"]
+	path = ui
+	url = https://github.com/Tendrl/ui
+[submodule "commons"]
+	path = commons
+	url = https://github.com/Tendrl/commons
+[submodule "gluster-integration"]
+	path = gluster-integration
+	url = https://github.com/Tendrl/gluster-integration
+[submodule "notifier"]
+	path = notifier
+	url = https://github.com/Tendrl/notifier
