@@ -62,24 +62,26 @@ It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host 
     * `brew install ansible`
 
 ## Get started
-* You **must** be in the Red Hat VPN
 * Clone this repository
-  * `git clone https://github.com/red-hat-storage/RHGS-vagrant.git`
+  * `git clone https://github.com/shirshendu/tendrl-vagrant.git`
 * Goto the folder in which you cloned this repo
-  * `cd RHGS-vagrant`
+  * `cd tendrl-vagrant`
 * if you are a returning user run `git pull` to ensure you have the latest updates
 * if you are on RHEL/Fedora and your don't want your libvirt storage domain `default` to be used, override the storage domain like this
   * `export LIBVIRT_STORAGE_POOL=images`
-* Run `vagrant up`
-  * Decide how many RHGS nodes and how many bricks you need
+* `cp tendrl.conf.yml.sample tendrl.conf.yml`
+  * Decide how many storage nodes and how many bricks you need
   * Decide if you want vagrant to initialize the cluster (`gdeploy`) for you
   * If you opted to initialize the cluster, decide whether you want to deploy tendrl
+  * edit options in this file
+* Run `vagrant up`
   * Wait a while
 
 ## Usage
 * *Always make sure you are in the git repo - vagrant only works in there!*
 * After `vagrant up` you can connect to each VM with `vagrant ssh` and the name of the VM you want to connect to
-* Each VM is called `tendrl-node-x` where x starts with 1
+* The single central server VM is called `tendrl-server`
+* Each storage node VM is called `tendrl-node-x` where x starts with 1
   - tendrl-node-1 is your first VM and it counts up depending on the amount of VMs you spawn
 
 * There are also other vagrant commands you should check out!
@@ -87,16 +89,15 @@ It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host 
   * if you want to freeze the VMs and continue later: `vagrant suspend`
   * Try `vagrant -h` to find out about them
   * if you run `vagrant up` again you without running `vagrant destroy` before you will overwrite your configuration and vagrant may loose track of some VMs (it's safe to remove them manually)
-* modify the `RHGS_VERSION` / `TENDRL_VERSION` parameter in the `Vagrantfile` for different combinations of OS and Gluster/Tendrl versions
-* modify the `VMMEM` and `VMCPU` variables in the Vagrant file to change RHGS VM resources, adjust `VMDISK` to change brick device sizes
+* modify the `VMMEM` and `VMCPU` variables in the Vagrant file to change the VM resources, adjust `VMDISK` to change brick device sizes
 
 ## What happens under the covers
-* After starting the RHGS VMs:
+* After starting the storage node VMs:
   * the hosts file is prepopulated
   * all glusters packages are pre-installed (allows you to continue offline)
-  * the RHEL images are subscribed to YUM repositories on the RHT VPN
-  * a gdeploy.conf is in the home directory of the vagrant user
+  * the centos images are subscribed to epel, copr repositories 
 * If you decided to have vagrant initialize the cluster
+  * a gdeploy.conf is generated
   * gdeploy was executed with the gdeploy.conf file
   * cluster is peered
   * all block devices have been set up of VGs, LVs, formatted and mounted (`gdeploy`'s standard backend-setup)
@@ -104,18 +105,18 @@ It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host 
 * If you decided to deploy tendrl
   * an additional VM will run tendrl server components
   * the Ansible inventory and tendrl install playbook have been generated
-  * the installation playbook has been executed on the Tendrl server and RHGS nodes
+  * the installation playbook has been executed on the Tendrl server and storage nodes
   * the Tendrl UI is reachable on the IP address of the eth1 adapter of the Tendrl VM (the URL also displayed after the installer finished)
 
 ## Clean up / Refresh images
 
 If you like to clean up disk space or there are updates to the images do the following:
 
-* run `rm ~/.vagrant.d/boxes/rhgs-*.box` and `rm ~/.vagrant.d/boxes/tendrl-*.box` to delete older Vagrant images
-* on VirtualBox - remove the VM instances named `packer-tendrl-server-...` and `packer-rhgs-node-...` (these are base images for the clones)
+* on VirtualBox - remove the VM instances named `packer-tendrl-server-...` and `packer-tendrl-node-...` (these are base images for the clones)
 * on libvirt
   * run `virsh vol-list default` to list all images in your `default` storage pool (adjust the name if you are using a different one)
-  * run `virsh vol-delete rhgs-node-... default` and  `virsh vol-delete tendrl-server-... default` to delete the images starting with `rhgs-node-...` and `tendrl-server-...` (replace with full name) from the default pool
+  * run `virsh vol-delete tendrl-node-... default` and  `virsh vol-delete tendrl-server-... default` to delete the images starting with `tendrl-node-...` and `tendrl-server-...` (replace with full name) from the default pool
+* run `vagrant box update`
 
 Next time you do `vagrant up` it will automatically pull new images.
 
@@ -133,8 +134,10 @@ If you - for whatever reason - do not want to use my prebuilt box, you can creat
 * `git checkout` the "packer" branch of this repository, follow the README
 
 ## Author
+[Shirshendu Mukherjee](https://github.com/shirshendu)
+
+## Original Authors
+[Christopher Blum](https://github.com/zeichenanonym)
+
 [Daniel Messer](mailto:dmesser@redhat.com) - [dmesser@redhat.com](mailto:dmesser@redhat.com) -
 Technical Marketing Manager @ Red Hat
-
-## Original Author
-[Christopher Blum](https://github.com/zeichenanonym)
