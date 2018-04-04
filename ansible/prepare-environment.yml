@@ -47,10 +47,13 @@
         key: "{{ item.stdout }}"
       with_items: "{{ ssh_known_host_results.results }}"
 
-    #- name: Register known hosts
-      #known_hosts:
-        #name: "{{item}}"
-        #state: present
-        #key: "{{ lookup('file', '{{ item }}/root/.ssh/id_rsa.pub') }}"
-      #with_items: "{{groups['all']}}"
+    - name: add EPEL
+      yum:
+        name: epel-release
+        state: present
+
+    - name: add copr
+      yum:
+        name: yum-plugin-copr
+        state: present
 ...
