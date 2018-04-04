@@ -10,3 +10,6 @@ packer_vars
 ansible/fetch
 *.swp
 tendrl.conf.yml
+ansible/grafana_admin_passwd
+ansible/tendrl-server
+ansible/tendrl-node*

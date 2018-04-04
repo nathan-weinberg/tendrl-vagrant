@@ -5,8 +5,6 @@
   become: true
 
   tasks:
-    - setup:
-
     - name: Install gdeploy
       yum:
         name: gdeploy

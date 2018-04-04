@@ -121,6 +121,54 @@ Vagrant.configure(2) do |config|
     libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
   end
 
+  config.vm.define 'tendrl-server' do |machine|
+    # Provider-independent options
+    machine.vm.hostname = 'tendrl-server'
+    machine.vm.synced_folder '.', '/vagrant', disabled: true
+
+    #machine.vm.synced_folder 'api'
+    machine.vm.provider 'virtualbox' do |vb, override|
+      # private VM-only network where GlusterFS traffic will flow
+      override.vm.network 'private_network',
+        type: 'dhcp',
+        nic_type: 'virtio',
+        auto_config: false
+
+      # Make this a linked clone for cow snapshot based root disks
+      vb.linked_clone = true
+
+      # Set VM resources
+      vb.memory = VMMEM
+      vb.cpus = VMCPU
+
+      # Don't display the VirtualBox GUI when booting the machine
+      vb.gui = false
+
+      # give this VM a proper name
+      vb.name = "tendrl-server"
+
+      # Accelerate SSH / Ansible connections (https://github.com/mitchellh/vagrant/issues/1807)
+      vb.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
+      vb.customize ['modifyvm', :id, '--natdnsproxy1', 'on']
+    end
+
+    machine.vm.provider 'libvirt' do |libvirt, override|
+      # private VM-only network where GlusterFS traffic will flow
+      override.vm.network 'private_network', type: 'dhcp', auto_config: false
+
+      # Set VM resources
+      libvirt.memory = VMMEM
+      libvirt.cpus = VMCPU
+
+      # Use virtio device drivers
+      libvirt.nic_model_type = 'virtio'
+      libvirt.disk_bus = 'virtio'
+
+      # connect to local libvirt daemon as root
+      libvirt.username = 'root'
+    end
+  end
+
   (1..storage_node_count).each do |node_index|
     config.vm.define "tendrl-node-#{node_index}" do |machine|
       # Provider-independent options
@@ -178,6 +226,10 @@ Vagrant.configure(2) do |config|
 
         machine.vm.provision :prepare_env, type: :ansible do |ansible|
           ansible.limit = 'all'
+          ansible.groups = {
+            'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"],
+            'tendrl-server' => ['tendrl-server']
+          }
           ansible.playbook = 'ansible/prepare-environment.yml'
         end
 
@@ -207,7 +259,7 @@ Vagrant.configure(2) do |config|
             ansible.limit = 'all'
             ansible.groups = {
               'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"],
-              'tendrl-server' => []
+              'tendrl-server' => ['tendrl-server']
             }
             ansible.playbook = 'ansible/tendrl-site.yml'
           end
