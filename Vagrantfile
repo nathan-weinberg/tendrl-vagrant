@@ -223,7 +223,6 @@ Vagrant.configure(2) do |config|
       end
 
       if node_index == storage_node_count
-
         machine.vm.provision :prepare_env, type: :ansible do |ansible|
           ansible.limit = 'all'
           ansible.groups = {
@@ -255,6 +254,7 @@ Vagrant.configure(2) do |config|
         end
 
         if tendrl_init
+          ENV['ANSIBLE_ROLES_PATH'] = "#{ENV['ANSIBLE_ROLES_PATH']}:tendrl-ansible/roles"
           machine.vm.provision :deploy_tendrl, type: :ansible do |ansible|
             ansible.limit = 'all'
             ansible.groups = {

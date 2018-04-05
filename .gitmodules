@@ -19,3 +19,6 @@
 [submodule "notifier"]
 	path = notifier
 	url = https://github.com/Tendrl/notifier
+[submodule "tendrl-ansible"]
+	path = tendrl-ansible
+	url = https://github.com/Tendrl/tendrl-ansible
