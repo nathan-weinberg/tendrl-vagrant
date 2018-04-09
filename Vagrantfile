@@ -42,7 +42,9 @@ end
 #################
 VMCPU = 1         # number of cores per VM
 VMMEM = 1024      # amount of memory in MB per VM
-VMDISK = '128m'.freeze # size of brick disks in GB per VM
+VMDISK = '256m'.freeze # size of brick disks in MB
+# Metadata volume isn't generated if <200MB:
+# https://github.com/gluster/gdeploy/blob/0462ad54f1d8f9c83502e774246a528ae2c8c83f/modules/lv.py#L168
 
 #################
 
@@ -88,7 +90,7 @@ def vb_attach_disks(disks, provider, boxName)
       provider.customize [
         'createhd',
         '--filename', file_to_disk,
-        '--size', VMDISK * 1024
+        '--size', VMDISK.to_i
       ]
     end
     provider.customize [
@@ -118,8 +120,25 @@ Vagrant.configure(2) do |config|
   end
 
   config.vm.provider 'libvirt' do |libvirt, _override|
-    libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
+    # Use virtio device drivers
+    libvirt.nic_model_type = 'virtio'
+    libvirt.disk_bus = 'virtio'
+
+    #libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
+    libvirt.storage_pool_name = 'local'
   end
+
+  config.vm.network 'private_network', type: 'dhcp', auto_config: true
+  #config.vm.synced_folder 'commons/tendrl', '/usr/lib/python2.7/site-packages/tendrl',
+    #type: 'rsync', rsync__exclude: '.git/',
+    #rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
+  #config.vm.synced_folder 'node_agent/tendrl', '/usr/lib/python2.7/site-packages/tendrl',
+    #type: 'rsync', rsync__exclude: '.git/',
+    #rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
+
+  config.vm.synced_folder 'api', '/usr/share/tendrl-api', disabled: true,
+    type: 'rsync', rsync__exclude: %w[.git vendor/bundle .bundle .gitignore .rspec .ruby-gemset .ruby-version .travis.yml],
+    rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
 
   config.vm.define 'tendrl-server' do |machine|
     # Provider-independent options
@@ -128,12 +147,6 @@ Vagrant.configure(2) do |config|
 
     #machine.vm.synced_folder 'api'
     machine.vm.provider 'virtualbox' do |vb, override|
-      # private VM-only network where GlusterFS traffic will flow
-      override.vm.network 'private_network',
-        type: 'dhcp',
-        nic_type: 'virtio',
-        auto_config: false
-
       # Make this a linked clone for cow snapshot based root disks
       vb.linked_clone = true
 
@@ -153,19 +166,20 @@ Vagrant.configure(2) do |config|
     end
 
     machine.vm.provider 'libvirt' do |libvirt, override|
-      # private VM-only network where GlusterFS traffic will flow
-      override.vm.network 'private_network', type: 'dhcp', auto_config: false
-
       # Set VM resources
       libvirt.memory = VMMEM
       libvirt.cpus = VMCPU
 
-      # Use virtio device drivers
-      libvirt.nic_model_type = 'virtio'
-      libvirt.disk_bus = 'virtio'
-
       # connect to local libvirt daemon as root
       libvirt.username = 'root'
+    end
+    machine.vm.provision 'bounce_services', type: 'ansible', run: 'never' do |ansible|
+      ansible.limit = 'all'
+      ansible.groups = {
+        'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"],
+        'tendrl-server' => ['tendrl-server']
+      }
+      ansible.playbook = 'ansible/bounce-services.yml'
     end
   end
 
@@ -176,12 +190,6 @@ Vagrant.configure(2) do |config|
       machine.vm.synced_folder '.', '/vagrant', disabled: true
 
       machine.vm.provider 'virtualbox' do |vb, override|
-        # private VM-only network where GlusterFS traffic will flow
-        override.vm.network 'private_network',
-          type: 'dhcp',
-          nic_type: 'virtio',
-          auto_config: false
-
         # Make this a linked clone for cow snapshot based root disks
         vb.linked_clone = true
 
@@ -204,9 +212,6 @@ Vagrant.configure(2) do |config|
       end
 
       machine.vm.provider 'libvirt' do |libvirt, override|
-        # private VM-only network where GlusterFS traffic will flow
-        override.vm.network 'private_network', type: 'dhcp', auto_config: false
-
         # Set VM resources
         libvirt.memory = VMMEM
         libvirt.cpus = VMCPU
@@ -248,7 +253,8 @@ Vagrant.configure(2) do |config|
               'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"]
             }
             ansible.extra_vars = {
-              provider: ENV['VAGRANT_DEFAULT_PROVIDER'] # '<your_provider_name>'
+              provider: ENV['VAGRANT_DEFAULT_PROVIDER'], # '<your_provider_name>'
+              storage_node_count: storage_node_count
             }
           end
         end
@@ -267,4 +273,5 @@ Vagrant.configure(2) do |config|
       end
     end
   end
+
 end

@@ -1,16 +1,4 @@
 ---
-- hosts: gluster-servers
-  user: vagrant
-  become: yes
-  vars:
-    configure_firewalld_for_tendrl: false
-    etcd_fqdn: tendrl-server.local
-    graphite_fqdn: tendrl-server.local
-    tendrl_copr_repo: master
-  roles:
-    - tendrl-ansible.tendrl-copr
-    - tendrl-ansible.tendrl-storage-node
-
 - hosts: tendrl-server
   user: vagrant
   become: yes
@@ -24,3 +12,23 @@
     - tendrl-ansible.grafana-repo
     - tendrl-ansible.tendrl-copr
     - tendrl-ansible.tendrl-server
+- hosts: gluster-servers
+  user: vagrant
+  become: yes
+  vars:
+    configure_firewalld_for_tendrl: false
+    etcd_fqdn: tendrl-server.local
+    graphite_fqdn: tendrl-server.local
+    tendrl_copr_repo: master
+  roles:
+    - tendrl-ansible.tendrl-copr
+    - tendrl-ansible.tendrl-storage-node
+#  tasks:
+#    - name: Install tendrl-gluster-integration
+#      yum:
+#        name: tendrl-gluster-integration
+#        state: present
+#    - name: Enable tendrl-gluster-integration
+#      systemd:
+#        name: tendrl-gluster-integration
+#        enabled: yes
