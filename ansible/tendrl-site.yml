@@ -23,12 +23,3 @@
   roles:
     - tendrl-ansible.tendrl-copr
     - tendrl-ansible.tendrl-storage-node
-#  tasks:
-#    - name: Install tendrl-gluster-integration
-#      yum:
-#        name: tendrl-gluster-integration
-#        state: present
-#    - name: Enable tendrl-gluster-integration
-#      systemd:
-#        name: tendrl-gluster-integration
-#        enabled: yes

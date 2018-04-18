@@ -1,0 +1,17 @@
+---
+- hosts: all
+  user: vagrant
+  become: yes
+  tasks:
+    - name: Clean yum cache
+      shell: 'yum clean all'
+      args:
+        warn: false
+    - name: Update dependency packages
+      shell: 'yum update -y tendrl*'
+      args:
+        warn: false
+    - name: Bounce services
+      systemd:
+        name: tendrl-*
+        state: restarted

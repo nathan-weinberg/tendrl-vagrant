@@ -269,6 +269,15 @@ Vagrant.configure(2) do |config|
             }
             ansible.playbook = 'ansible/tendrl-site.yml'
           end
+
+          machine.vm.provision :update_tendrl, type: :ansible do |ansible|
+            ansible.limit = 'all'
+            ansible.groups = {
+              'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"],
+              'tendrl-server' => ['tendrl-server']
+            }
+            ansible.playbook = 'ansible/update-tendrl.yml'
+          end
         end
       end
     end

@@ -1,48 +1,12 @@
 ---
-- hosts: tendrl-server
+- hosts: all
   become: yes
   tasks:
-    - name: bounce tendrl-api
+    - name: Bounce Services
       systemd:
-        name: tendrl-api
+        name: tendrl-*
         state: restarted
-    - name: bounce tendrl-node-agent
+    - name: Ensure services started
       systemd:
-        name: tendrl-node-agent
-        state: restarted
-    - name: bounce tendrl-monitoring-integration
-      systemd:
-        name: tendrl-monitoring-integration
-        state: restarted
-    - name: bounce tendrl-api
-      systemd:
-        name: tendrl-api
-        state: started
-    - name: bounce tendrl-node-agent
-      systemd:
-        name: tendrl-node-agent
-        state: started
-    - name: bounce tendrl-monitoring-integration
-      systemd:
-        name: tendrl-monitoring-integration
-        state: started
-
-- hosts: gluster-servers
-  become: yes
-  tasks:
-    - name: bounce tendrl-node-agent
-      systemd:
-        name: tendrl-node-agent
-        state: restarted
-    - name: bounce tendrl-gluster-integration
-      systemd:
-        name: tendrl-gluster-integration
-        state: restarted
-    - name: bounce tendrl-node-agent
-      systemd:
-        name: tendrl-node-agent
-        state: started
-    - name: bounce tendrl-gluster-integration
-      systemd:
-        name: tendrl-gluster-integration
+        name: tendrl-*
         state: started
