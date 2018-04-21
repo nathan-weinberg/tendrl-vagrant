@@ -1,0 +1,3 @@
+[submodule "tendrl-ansible"]
+	path = tendrl-ansible
+	url = git://github.com/Tendrl/tendrl-ansible.git
