@@ -83,6 +83,11 @@ It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host 
 * The single central server VM is called `tendrl-server`
 * Each storage node VM is called `tendrl-node-x` where x starts with 1
   - tendrl-node-1 is your first VM and it counts up depending on the amount of VMs you spawn
+* If you get the following error:
+
+`Error while activating network: Call to virNetworkCreate failed: error creating bridge interface virbr0: File exists.`
+
+Please try restarting `libvirtd` with `sudo systemctl restart libvirtd`
 
 * There are also other vagrant commands you should check out!
   * if you want to throw away everything: `vagrant destroy -f`
@@ -103,6 +108,7 @@ It uses vagrant's ansible plugin, so you will need ansible (>=2.4) on your host 
   * all block devices have been set up of VGs, LVs, formatted and mounted (`gdeploy`'s standard backend-setup)
   * brick directories have been created
 * If you decided to deploy tendrl
+  * tendrl-ansible roles are downloaded
   * an additional VM will run tendrl server components
   * the Ansible inventory and tendrl install playbook have been generated
   * the installation playbook has been executed on the Tendrl server and storage nodes
