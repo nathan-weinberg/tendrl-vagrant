@@ -80,8 +80,8 @@ if ARGV[0] != 'ssh-config' && ARGV[0] != 'ssh'
   puts 'Detected settings from tendrl.conf.yml:'
   puts "  We have configured #{storage_node_count} VMs, each with #{disk_count} disks"
   puts "  Cluster deployment playbook is #{cluster_init ? 'enabled' : 'disabled'}"
-  puts "  Tendrl storage node playbook is #{tendrl_init ? 'enabled' : 'disabled'}"
   puts "  Storage pool: #{ENV['LIBVIRT_STORAGE_POOL'] || 'default'}" if ENV['VAGRANT_DEFAULT_PROVIDER'] == 'libvirt'
+  puts "  Tendrl storage node playbook is #{tendrl_init ? 'enabled' : 'disabled'}"
 end
 
 def vb_attach_disks(disks, provider, boxName)
@@ -253,6 +253,9 @@ Vagrant.configure(2) do |config|
 
         if tendrl_init
           ENV['ANSIBLE_ROLES_PATH'] = "#{ENV['ANSIBLE_ROLES_PATH']}:tendrl-ansible/roles"
+          puts '  Pulling submodule Tendrl/tendrl-ansible'
+          `git submodule init`
+          `git submodule update`
           machine.vm.provision :deploy_tendrl, type: :ansible do |ansible|
             ansible.limit = 'all'
             ansible.groups = {
@@ -274,5 +277,4 @@ Vagrant.configure(2) do |config|
       end
     end
   end
-
 end
