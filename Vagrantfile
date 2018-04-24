@@ -34,7 +34,7 @@ if OS.windows?
 elsif OS.mac?
   ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
 elsif OS.linux?
-  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt' # '<your_provider_name>'
 end
 
 #################
@@ -78,9 +78,10 @@ end
 
 if ARGV[0] != 'ssh-config' && ARGV[0] != 'ssh'
   puts 'Detected settings from tendrl.conf.yml:'
-  puts "  We have configured #{storage_node_count} VMs with each #{disk_count} disks"
+  puts "  We have configured #{storage_node_count} VMs, each with #{disk_count} disks"
   puts "  Cluster deployment playbook is #{cluster_init ? 'enabled' : 'disabled'}"
   puts "  Tendrl storage node playbook is #{tendrl_init ? 'enabled' : 'disabled'}"
+  puts "  Storage pool: #{ENV['LIBVIRT_STORAGE_POOL'] || 'default'}" if ENV['VAGRANT_DEFAULT_PROVIDER'] == 'libvirt'
 end
 
 def vb_attach_disks(disks, provider, boxName)
@@ -123,18 +124,10 @@ Vagrant.configure(2) do |config|
     # Use virtio device drivers
     libvirt.nic_model_type = 'virtio'
     libvirt.disk_bus = 'virtio'
-
-    #libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
-    libvirt.storage_pool_name = 'local'
+    libvirt.storage_pool_name = ENV['LIBVIRT_STORAGE_POOL'] || 'default'
   end
 
   config.vm.network 'private_network', type: 'dhcp', auto_config: true
-  #config.vm.synced_folder 'commons/tendrl', '/usr/lib/python2.7/site-packages/tendrl',
-    #type: 'rsync', rsync__exclude: '.git/',
-    #rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
-  #config.vm.synced_folder 'node_agent/tendrl', '/usr/lib/python2.7/site-packages/tendrl',
-    #type: 'rsync', rsync__exclude: '.git/',
-    #rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
 
   config.vm.synced_folder 'api', '/usr/share/tendrl-api', disabled: true,
     type: 'rsync', rsync__exclude: %w[.git vendor/bundle .bundle .gitignore .rspec .ruby-gemset .ruby-version .travis.yml],
@@ -145,7 +138,6 @@ Vagrant.configure(2) do |config|
     machine.vm.hostname = 'tendrl-server'
     machine.vm.synced_folder '.', '/vagrant', disabled: true
 
-    #machine.vm.synced_folder 'api'
     machine.vm.provider 'virtualbox' do |vb, override|
       # Make this a linked clone for cow snapshot based root disks
       vb.linked_clone = true
@@ -253,7 +245,7 @@ Vagrant.configure(2) do |config|
               'gluster-servers' => ["tendrl-node-[1:#{storage_node_count}]"]
             }
             ansible.extra_vars = {
-              provider: ENV['VAGRANT_DEFAULT_PROVIDER'], # '<your_provider_name>'
+              provider: ENV['VAGRANT_DEFAULT_PROVIDER'],
               storage_node_count: storage_node_count
             }
           end
