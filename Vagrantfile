@@ -58,6 +58,8 @@ storage_node_count = tendrl_conf['storage_node_count'].to_i
 disk_count = tendrl_conf['disk_count'].to_i
 cluster_init = tendrl_conf['cluster_init']
 tendrl_init = tendrl_conf['tendrl_init']
+bootstrap = tendrl_conf['bootstrap']
+vm_box = tendrl_conf['vm_box']
 
 if storage_node_count < 2
   puts 'Minimum 2 nodes needed'
@@ -114,7 +116,7 @@ end
 
 # Vagrant config section starts here
 Vagrant.configure(2) do |config|
-  config.vm.box = 'centos/7'
+  config.vm.box = vm_box
 
   config.vm.provider 'virtualbox' do |vb, _override|
     vb.gui = false
@@ -173,6 +175,10 @@ Vagrant.configure(2) do |config|
       }
       ansible.playbook = 'ansible/bounce-services.yml'
     end
+  end
+
+  if bootstrap != false
+    config.vm.provision "shell", path: bootstrap
   end
 
   (1..storage_node_count).each do |node_index|
