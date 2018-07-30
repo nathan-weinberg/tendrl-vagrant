@@ -13,4 +13,5 @@ tendrl.conf.yml
 ansible/grafana_admin_passwd
 ansible/tendrl-server
 ansible/tendrl-node*
-*.sh
+bootstrap_*.sh
+volmount/
