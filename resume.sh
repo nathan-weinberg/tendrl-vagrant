@@ -6,6 +6,12 @@ if [[ $(/usr/bin/id -u) -ne 0 ]]; then
     exit
 fi
 
+# ensure VMs are already created
+if [[ $(vagrant status | grep -c "not created") -ne 0 ]]; then
+	echo 'No VM setup detected. To build a new one run "initial_setup.sh".'
+	exit
+fi
+
 ###
 
 vagrant reload

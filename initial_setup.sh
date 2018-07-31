@@ -6,6 +6,12 @@ if [[ $(/usr/bin/id -u) -ne 0 ]]; then
     exit
 fi
 
+# ensure VMs not already created
+if [[ $(vagrant status | grep -c "not created") -eq 0 ]]; then
+	echo 'A vagrant setup already exists. Please run "destroy.sh" to teardown the existing setup before building a new one.'
+	exit
+fi
+
 ###
 
 vagrant up
