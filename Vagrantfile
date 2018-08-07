@@ -47,6 +47,8 @@ VMDISK = '256m'.freeze # size of brick disks in MB
 # https://github.com/gluster/gdeploy/blob/0462ad54f1d8f9c83502e774246a528ae2c8c83f/modules/lv.py#L168
 
 #################
+# Verifies and applies custom VM settings from yaml file
+#################
 
 storage_node_count = -1
 disk_count = -1
@@ -78,13 +80,23 @@ end
   end
 end
 
+#################
+# Print-out
+#################
+
 if ARGV[0] != 'ssh-config' && ARGV[0] != 'ssh'
   puts 'Detected settings from tendrl.conf.yml:'
   puts "  We have configured #{storage_node_count} VMs, each with #{disk_count} disks"
   puts "  Cluster deployment playbook is #{cluster_init ? 'enabled' : 'disabled'}"
   puts "  Storage pool: #{ENV['LIBVIRT_STORAGE_POOL'] || 'default'}" if ENV['VAGRANT_DEFAULT_PROVIDER'] == 'libvirt'
   puts "  Tendrl storage node playbook is #{tendrl_init ? 'enabled' : 'disabled'}"
+  puts "  Selected VM Box is #{vm_box}"
+  puts "  Bootstraping is #{bootstrap ? 'enabled' : 'disabled'} for this setup"
 end
+
+#################
+# Some function defintions
+#################
 
 def vb_attach_disks(disks, provider, boxName)
   (1..disks).each do |i|
@@ -116,6 +128,8 @@ end
 
 # Vagrant config section starts here
 Vagrant.configure(2) do |config|
+
+  # sets VM OS
   config.vm.box = vm_box
 
   config.vm.provider 'virtualbox' do |vb, _override|
@@ -136,10 +150,12 @@ Vagrant.configure(2) do |config|
     rsync__args: ["--verbose", "--rsync-path='sudo rsync'", "--archive", "-z"]
 
   config.vm.define 'tendrl-server' do |machine|
+
     # Provider-independent options
     machine.vm.hostname = 'tendrl-server'
     machine.vm.synced_folder '.', '/vagrant', disabled: true
 
+    # virtualbox setup (if applicable)
     machine.vm.provider 'virtualbox' do |vb, override|
       # Make this a linked clone for cow snapshot based root disks
       vb.linked_clone = true
@@ -159,7 +175,9 @@ Vagrant.configure(2) do |config|
       vb.customize ['modifyvm', :id, '--natdnsproxy1', 'on']
     end
 
+    # libvert setup (if applicable)
     machine.vm.provider 'libvirt' do |libvirt, override|
+      
       # Set VM resources
       libvirt.memory = VMMEM
       libvirt.cpus = VMCPU
@@ -167,6 +185,8 @@ Vagrant.configure(2) do |config|
       # connect to local libvirt daemon as root
       libvirt.username = 'root'
     end
+
+    # run bounces-services ansible playbook
     machine.vm.provision 'bounce_services', type: 'ansible', run: 'never' do |ansible|
       ansible.limit = 'all'
       ansible.groups = {
@@ -177,17 +197,21 @@ Vagrant.configure(2) do |config|
     end
   end
 
+  # allows execution of shell commands after ansible playbooks run (avoid conflicts)
   if bootstrap != false
     config.vm.provision "shell", path: bootstrap
   end
 
   (1..storage_node_count).each do |node_index|
     config.vm.define "tendrl-node-#{node_index}" do |machine|
+
       # Provider-independent options
       machine.vm.hostname = "tendrl-node-#{node_index}"
       machine.vm.synced_folder '.', '/vagrant', disabled: true
 
+      # virtualbox setup (if applicable)
       machine.vm.provider 'virtualbox' do |vb, override|
+
         # Make this a linked clone for cow snapshot based root disks
         vb.linked_clone = true
 
@@ -209,7 +233,9 @@ Vagrant.configure(2) do |config|
         vb.customize ['modifyvm', :id, '--natdnsproxy1', 'on']
       end
 
+      # libvert setup (if applicable)
       machine.vm.provider 'libvirt' do |libvirt, override|
+
         # Set VM resources
         libvirt.memory = VMMEM
         libvirt.cpus = VMCPU
@@ -225,7 +251,9 @@ Vagrant.configure(2) do |config|
         libvirt_attach_disks(disk_count, libvirt)
       end
 
+      # run additional playbooks once final storage node has been provisioned
       if node_index == storage_node_count
+
         machine.vm.provision :prepare_env, type: :ansible do |ansible|
           ansible.limit = 'all'
           ansible.groups = {
@@ -243,6 +271,7 @@ Vagrant.configure(2) do |config|
           ansible.playbook = 'ansible/prepare-gluster.yml'
         end
 
+        # run cluster deployment playbook (if applicable)
         if cluster_init
           machine.vm.provision :deploy_cluster, type: :ansible do |ansible|
             ansible.limit = 'all'
@@ -257,6 +286,7 @@ Vagrant.configure(2) do |config|
           end
         end
 
+        # run tendrl install playbook (if applicable)
         if tendrl_init
           ENV['ANSIBLE_ROLES_PATH'] = "#{ENV['ANSIBLE_ROLES_PATH']}:tendrl-ansible/roles"
           puts '  Pulling submodule Tendrl/tendrl-ansible'
@@ -278,9 +308,9 @@ Vagrant.configure(2) do |config|
               'tendrl-server' => ['tendrl-server']
             }
             ansible.playbook = 'ansible/update-tendrl.yml'
-          end
+          # end
         end
-      end
+      end      
     end
   end
 end
