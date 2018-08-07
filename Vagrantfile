@@ -308,7 +308,7 @@ Vagrant.configure(2) do |config|
               'tendrl-server' => ['tendrl-server']
             }
             ansible.playbook = 'ansible/update-tendrl.yml'
-          # end
+          end
         end
       end      
     end
